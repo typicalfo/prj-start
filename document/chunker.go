@@ -2,7 +2,7 @@ package document
 
 import (
 	"fmt"
-	"prj-start/logger"
+	"github.com/typicalfo/prj-start/logger"
 	"regexp"
 	"strings"
 )

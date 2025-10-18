@@ -3,10 +3,10 @@ package document
 import (
 	"bufio"
 	"fmt"
+	"github.com/typicalfo/prj-start/logger"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"prj-start/logger"
 	"strings"
 )
 

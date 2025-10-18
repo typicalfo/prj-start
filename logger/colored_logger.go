@@ -13,6 +13,19 @@ func InitLogger() {
 		ForceColors:   true,
 		FullTimestamp: true,
 	})
+	SetLogLevel("info")
+}
+
+func SetLogLevel(level string) {
+	if Logger == nil {
+		InitLogger()
+	}
+
+	logLevel, err := logrus.ParseLevel(level)
+	if err != nil {
+		logLevel = logrus.InfoLevel
+	}
+	Logger.SetLevel(logLevel)
 }
 
 func LogInfo(message string) {

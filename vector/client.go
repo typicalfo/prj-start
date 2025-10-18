@@ -3,8 +3,8 @@ package vector
 import (
 	"context"
 	"fmt"
-	"prj-start/config"
-	"prj-start/logger"
+	"github.com/typicalfo/prj-start/config"
+	"github.com/typicalfo/prj-start/logger"
 
 	"github.com/upstash/vector-go"
 )

@@ -1,3 +1,5 @@
 .env
 main
 prj-start
+# Added by goreleaser init:
+dist/

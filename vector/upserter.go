@@ -4,9 +4,9 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
+	"github.com/typicalfo/prj-start/document"
+	"github.com/typicalfo/prj-start/logger"
 	"path/filepath"
-	"prj-start/document"
-	"prj-start/logger"
 	"strings"
 )
 

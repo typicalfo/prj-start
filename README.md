@@ -4,11 +4,68 @@ A Go-based tool for intelligently chunking and ingesting development documentati
 
 ## Overview
 
-This project processes development documents from the `dev-docs/` folder, intelligently chunks them based on content type, and upserts them to an Upstash Vector database. The system automatically generates embeddings and handles metadata extraction for improved search capabilities.
+This project processes development documents from `dev-docs/` folder, intelligently chunks them based on content type, and upserts them to an Upstash Vector database. The system automatically generates embeddings and handles metadata extraction for improved search capabilities.
 
 The project uses a dual approach:
 - **Ingestion**: Go-based code for chunking and upserting documents
-- **Querying**: Upstash MCP server for natural language queries against the indexed data
+- **Querying**: Upstash MCP server for natural language queries against indexed data
+
+## Quickstart
+
+### Installation
+
+**Option 1: Go Install (Recommended)**
+```bash
+go install github.com/typicalfo/prj-start@latest
+```
+
+**Option 2: Build from Source**
+```bash
+git clone https://github.com/typicalfo/prj-start.git
+cd prj-start
+make build
+```
+
+### Setup
+
+1. **Initialize configuration** (interactive setup):
+   ```bash
+   prj-start init
+   ```
+   
+   This will guide you through setting up Upstash Vector credentials and save them to:
+   - `~/.config/prj-start/config.yaml` (Linux/macOS)
+   - `%LOCALAPPDATA%/prj-start/config.yaml` (Windows)
+
+2. **Organize your documents** in any folder structure:
+   ```
+   my-docs/
+   ├── go-fiber-recipes/
+   │   ├── 404-handler/
+   │   ├── authentication/
+   │   └── database/
+   ├── clean-architecture/
+   └── your-project/
+   ```
+
+3. **Process your documents**:
+   ```bash
+   # Process current directory
+   prj-start
+   
+   # Process specific folder
+   prj-start --folder /path/to/docs
+   
+   # Verbose output
+   prj-start --folder ./docs --verbose
+   ```
+
+4. **Query your data** using natural language with [Upstash MCP Server](#upstash-mcp-server-for-querying)
+
+For detailed setup instructions, see:
+- [Configuration](#configuration) - Complete environment setup
+- [Upstash MCP Server](#upstash-mcp-server-for-querying) - Natural language querying
+- [Agent Instructions](./AGENT_MCP_INSTRUCTIONS.md) - Development agent guidance
 
 ## Features
 

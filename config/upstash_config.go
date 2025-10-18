@@ -8,14 +8,14 @@ import (
 )
 
 type UpstashConfig struct {
-	URL               string
-	Token             string
-	IndexURL          string
-	Email             string
-	APIKey            string
-	BatchSize         int
-	ProcessingTimeout int
-	LogLevel          string
+	URL               string `yaml:"url"`
+	Token             string `yaml:"token"`
+	IndexURL          string `yaml:"indexurl"`
+	Email             string `yaml:"email"`
+	APIKey            string `yaml:"apikey"`
+	BatchSize         int    `yaml:"batchsize"`
+	ProcessingTimeout int    `yaml:"processingtimeout"`
+	LogLevel          string `yaml:"loglevel"`
 }
 
 func LoadUpstashConfig() *UpstashConfig {

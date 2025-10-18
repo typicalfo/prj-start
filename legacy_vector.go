@@ -3,15 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/typicalfo/prj-start/config"
+	"github.com/typicalfo/prj-start/document"
+	"github.com/typicalfo/prj-start/logger"
+	"github.com/typicalfo/prj-start/vector"
 	"os"
-	"prj-start/config"
-	"prj-start/document"
-	"prj-start/logger"
-	"prj-start/vector"
 	"time"
 )
 
-func main() {
+func legacyMain() {
 	// Initialize logger
 	logger.InitLogger()
 	logger.LogInfo("Starting vector upsert process")
