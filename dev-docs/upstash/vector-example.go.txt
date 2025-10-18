@@ -8,12 +8,7 @@ import (
 )
 
 func upstashExample() {
-	opts := vector.Options{
-		Url:   "https://massive-bonefish-61222-us1-vector.upstash.io",
-		Token: "ABoFMG1hc3NpdmUtYm9uZWZpc2gtNjEyMjItdXMxYWRtaW5ZMll3WkRKak0yUXRZVGczT1MwME9XSXlMVGc0Tm1JdE0ySm1ObUV6TTJFME1HUmk=",
-	}
-
-	index := vector.NewIndexWith(opts)
+	index, err := vector.NewIndexFromEnv()
 
 	err := index.Upsert(vector.Upsert{
 		Id:   "id-0",
