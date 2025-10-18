@@ -7,7 +7,7 @@ import (
 	"github.com/upstash/vector-go"
 )
 
-func main() {
+func upstashExample() {
 	opts := vector.Options{
 		Url:   "https://massive-bonefish-61222-us1-vector.upstash.io",
 		Token: "ABoFMG1hc3NpdmUtYm9uZWZpc2gtNjEyMjItdXMxYWRtaW5ZMll3WkRKak0yUXRZVGczT1MwME9XSXlMVGc0Tm1JdE0ySm1ObUV6TTJFME1HUmk=",
@@ -32,5 +32,10 @@ func main() {
 		IncludeMetadata: true,
 	})
 
-	fmt.Printf("\n%s\n", scores)
+	if err != nil {
+		fmt.Printf("\n%s\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("\n%v\n", scores)
 }
