@@ -6,6 +6,10 @@ A Go-based tool for intelligently chunking and ingesting development documentati
 
 This project processes development documents from the `dev-docs/` folder, intelligently chunks them based on content type, and upserts them to an Upstash Vector database. The system automatically generates embeddings and handles metadata extraction for improved search capabilities.
 
+The project uses a dual approach:
+- **Ingestion**: Go-based code for chunking and upserting documents
+- **Querying**: Upstash MCP server for natural language queries against the indexed data
+
 ## Features
 
 - **Intelligent Document Chunking**: Content-aware chunking strategies for different file types
@@ -73,10 +77,19 @@ make deps
 ```
 
 3. Set up environment variables:
-```bash
-export UPSTASH_VECTOR_URL="your-upstash-vector-url"
-export UPSTASH_VECTOR_TOKEN="your-upstash-vector-token"
-```
+   
+   The application uses `godotenv` to automatically load environment variables from a `.env` file. Copy the example file and update it with your credentials:
+   
+   ```bash
+   cp .env.example .env
+   # Edit .env with your Upstash Vector credentials
+   ```
+   
+   Or set them manually:
+   ```bash
+   export UPSTASH_VECTOR_REST_URL="your-upstash-vector-url"
+   export UPSTASH_VECTOR_REST_TOKEN="your-upstash-vector-token"
+   ```
 
 ## Usage
 
@@ -125,16 +138,84 @@ make kill          # Kill running processes
 
 ## Configuration
 
-The application uses environment variables for configuration:
+The application uses `godotenv` to automatically load environment variables from a `.env` file.
 
-- `UPSTASH_VECTOR_URL`: Your Upstash Vector database URL
-- `UPSTASH_VECTOR_TOKEN`: Your Upstash Vector authentication token
+### Required Variables
+
+- `UPSTASH_VECTOR_REST_URL`: Your Upstash Vector database URL
+- `UPSTASH_VECTOR_REST_TOKEN`: Your Upstash Vector authentication token
+
+### Optional Variables
+
+- `UPSTASH_VECTOR_INDEX_URL`: Your Upstash Vector index URL
+- `UPSTASH_EMAIL`: Email for Upstash MCP server (for querying)
+- `UPSTASH_API_KEY`: API key for Upstash MCP server (for querying)
+- `BATCH_SIZE`: Number of documents to process in each batch (default: 10)
+- `PROCESSING_TIMEOUT_MINUTES`: Timeout for document processing (default: 30)
+- `LOG_LEVEL`: Logging level - debug, info, warn, error (default: info)
+
+### Environment File
+
+Create a `.env` file in project root:
+
+```bash
+# Upstash Vector Configuration (Required)
+# Get these from your Upstash Console (https://console.upstash.com)
+UPSTASH_VECTOR_REST_URL=https://your-vector-url.upstash.io
+UPSTASH_VECTOR_REST_TOKEN=your-verification-token
+UPSTASH_VECTOR_INDEX_URL=https://your-index-url.upstash.io
+
+# Upstash MCP Server Configuration (Optional)
+# Get these from Account > Management API > Create API key in Upstash Console
+UPSTASH_EMAIL=your-email@example.com
+UPSTASH_API_KEY=your-upstash-api-key
+
+# Application Settings (Optional)
+# Batch size for document upsert operations (default: 10)
+BATCH_SIZE=10
+
+# Timeout for document processing in minutes (default: 30)
+PROCESSING_TIMEOUT_MINUTES=30
+
+# Log level: debug, info, warn, error (default: info)
+LOG_LEVEL=info
+```
+
+The application will automatically load these variables when started.
+
+### Upstash MCP Server for Querying
+
+For querying the indexed data using natural language, configure the Upstash MCP server:
+
+1. **Get API Key**: Go to `Account > Management API > Create API key` in Upstash Console
+2. **Configure MCP**: Add to your MCP configuration file:
+
+```json
+{
+  "mcpServers": {
+    "upstash": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/mcp-server",
+        "run",
+        "<UPSTASH_EMAIL>",
+        "<UPSTASH_API_KEY>"
+      ]
+    }
+  }
+}
+```
+
+For detailed MCP setup instructions, see [dev-docs/upstash/MCP.md](./dev-docs/upstash/MCP.md).
 
 ### Example .env file
 
 ```bash
-UPSTASH_VECTOR_URL=https://your-vector-url.upstash.io
-UPSTASH_VECTOR_TOKEN=your-verification-token
+# Upstash Vector Configuration
+UPSTASH_VECTOR_REST_URL=https://your-vector-url.upstash.io
+UPSTASH_VECTOR_REST_TOKEN=your-verification-token
+UPSTASH_VECTOR_INDEX_URL=https://your-index-url.upstash.io
 ```
 
 ## Document Processing
@@ -177,6 +258,7 @@ Each chunk includes the following metadata:
 
 ## Example Output
 
+### Ingestion Process
 ```
 [INFO] Starting vector upsert process
 [SUCCESS] Upstash Vector client initialized
@@ -189,6 +271,32 @@ Each chunk includes the following metadata:
 [SUCCESS] Successfully upserted batch of 10 documents
 [SUCCESS] Vector upsert completed successfully in 2.345s
 ```
+
+### Query Examples with MCP
+Once data is ingested, you can query using natural language:
+- "Show me all Go files related to clean architecture"
+- "Find examples of Fiber middleware usage"
+- "What database connection patterns are used in the recipes?"
+- "Show me error handling patterns in Go Fiber"
+
+## Architecture and Workflow
+
+### Data Flow
+1. **Document Discovery**: Scan `dev-docs/` folder for supported file types
+2. **Intelligent Chunking**: Apply content-specific chunking strategies
+3. **Metadata Extraction**: Extract file paths, topics, and content types
+4. **Vector Ingestion**: Upsert chunks with embeddings to Upstash Vector
+5. **Natural Language Querying**: Use Upstash MCP server for queries
+
+### Separation of Concerns
+- **Ingestion Code** (this project): Handles document processing and upserting
+- **Query Interface** (Upstash MCP): Provides natural language access to indexed data
+
+### Benefits of This Approach
+- **Specialized Tools**: Each component uses the best tool for its job
+- **Scalable Querying**: MCP server handles complex natural language queries
+- **Maintainable Code**: Clear separation between ingestion and querying
+- **Flexible Access**: Query from any MCP-compatible client (Cursor, Claude, etc.)
 
 ## Development Guidelines
 
@@ -206,6 +314,14 @@ The implementation follows clean architecture principles:
 For detailed implementation plans and status, see:
 - [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)
 - [CURRENT_STATUS.md](./CURRENT_STATUS.md)
+
+## Additional Documentation
+
+- [Upstash Go SDK Documentation](./UPSTASH-GO-SDK.md) - Complete API reference for the Go client
+- [Upstash Upsert API](./UPSTASH-UPSERT.md) - API documentation for upsert operations
+- [Upstash MCP Server](./dev-docs/upstash/MCP.md) - Natural language querying setup guide
+- [Agent MCP Instructions](./AGENT_MCP_INSTRUCTIONS.md) - Comprehensive guide for development agents using MCP
+- [Quick Start MCP](./QUICK_START_MCP.md) - Fast-start guide for agents to begin using the vector database
 
 ## License
 

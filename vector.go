@@ -19,8 +19,14 @@ func main() {
 	// Load configuration
 	cfg := config.LoadUpstashConfig()
 	if !cfg.Validate() {
-		logger.LogError("Upstash configuration is invalid. Please set UPSTASH_VECTOR_URL and UPSTASH_VECTOR_TOKEN environment variables.")
+		logger.LogError("Upstash configuration is invalid. Please set UPSTASH_VECTOR_REST_URL and UPSTASH_VECTOR_REST_TOKEN environment variables.")
 		os.Exit(1)
+	}
+
+	// Log configuration (without sensitive data)
+	logger.LogInfo(fmt.Sprintf("Configuration loaded - Batch size: %d, Timeout: %d minutes, Log level: %s", cfg.BatchSize, cfg.ProcessingTimeout, cfg.LogLevel))
+	if cfg.HasMCPConfig() {
+		logger.LogInfo("MCP configuration found for querying")
 	}
 
 	// Initialize vector client
@@ -48,11 +54,11 @@ func main() {
 
 	logger.LogSuccess(fmt.Sprintf("Found %d documents to process", len(documents)))
 
-	// Initialize upserter
-	upserter := vector.NewUpserter(vectorClient, 10) // Batch size of 10
+	// Initialize upserter with configured batch size
+	upserter := vector.NewUpserter(vectorClient, cfg.BatchSize)
 
-	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	// Create context with configured timeout
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.ProcessingTimeout)*time.Minute)
 	defer cancel()
 
 	// Process documents

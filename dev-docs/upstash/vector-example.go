@@ -1,0 +1,36 @@
+package upstash
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/upstash/vector-go"
+)
+
+func main() {
+	opts := vector.Options{
+		Url:   "https://massive-bonefish-61222-us1-vector.upstash.io",
+		Token: "ABoFMG1hc3NpdmUtYm9uZWZpc2gtNjEyMjItdXMxYWRtaW5ZMll3WkRKak0yUXRZVGczT1MwME9XSXlMVGc0Tm1JdE0ySm1ObUV6TTJFME1HUmk=",
+	}
+
+	index := vector.NewIndexWith(opts)
+
+	err := index.Upsert(vector.Upsert{
+		Id:   "id-0",
+		Data: "Enter data as string",
+	})
+
+	if err != nil {
+		fmt.Printf("\n{s}\n", err)
+		os.Exit(1)
+	}
+
+	scores, err := index.Query(vector.Query{
+		//Data:            "Enter data as string", //Data is used in official example, but does not build
+		TopK:            2,
+		IncludeVectors:  false,
+		IncludeMetadata: true,
+	})
+
+	fmt.Printf("\n%s\n", scores)
+}
