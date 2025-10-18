@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
+	"path/filepath"
 	"prj-start/document"
 	"prj-start/logger"
 	"strings"
@@ -45,11 +46,14 @@ func (u *Upserter) UpsertAllDocuments(ctx context.Context, documents []document.
 
 	logger.LogInfo(fmt.Sprintf("Total chunks to process: %d", totalChunks))
 
-	// Second pass: process documents
-	batch := make([]Document, 0, u.batchSize)
+	// Second pass: process documents by namespace
+	namespaces := make(map[string][]Document)
 
 	for i, doc := range documents {
 		logger.LogProgress(i+1, len(documents), fmt.Sprintf("Processing document: %s", doc.RelativePath))
+
+		// Extract namespace from file path (exclude dev-docs)
+		namespace := u.extractNamespace(doc.RelativePath)
 
 		chunker := document.NewChunker(1000)
 		chunks, err := chunker.ChunkDocument(doc)
@@ -72,17 +76,33 @@ func (u *Upserter) UpsertAllDocuments(ctx context.Context, documents []document.
 			metadata["source_file"] = doc.RelativePath
 			metadata["file_size"] = fmt.Sprintf("%d", doc.Size)
 
-			batch = append(batch, Document{
-				ID:       docID,
-				Content:  chunk.Content,
-				Metadata: metadata,
+			// Add recipe/project information
+			metadata["namespace"] = namespace
+			metadata["recipe_name"] = u.extractRecipeName(doc.RelativePath)
+			metadata["project_type"] = u.extractProjectType(doc.RelativePath)
+
+			namespaces[namespace] = append(namespaces[namespace], Document{
+				ID:        docID,
+				Content:   chunk.Content,
+				Metadata:  metadata,
+				Namespace: namespace,
 			})
+		}
+	}
+
+	// Process batches by namespace
+	for namespace, docs := range namespaces {
+		logger.LogInfo(fmt.Sprintf("Processing %d documents for namespace: %s", len(docs), namespace))
+
+		batch := make([]Document, 0, u.batchSize)
+		for _, doc := range docs {
+			batch = append(batch, doc)
 
 			// Process batch when it reaches the size limit
 			if len(batch) >= u.batchSize {
-				err := u.client.UpsertBatch(ctx, batch)
+				err := u.client.UpsertBatch(ctx, batch, namespace)
 				if err != nil {
-					logger.LogError(fmt.Sprintf("Error upserting batch: %v", err))
+					logger.LogError(fmt.Sprintf("Error upserting batch for namespace %s: %v", namespace, err))
 					return err
 				}
 				processedChunks += len(batch)
@@ -90,25 +110,70 @@ func (u *Upserter) UpsertAllDocuments(ctx context.Context, documents []document.
 				batch = batch[:0] // Clear batch
 			}
 		}
-	}
 
-	// Process remaining items in batch
-	if len(batch) > 0 {
-		err := u.client.UpsertBatch(ctx, batch)
-		if err != nil {
-			logger.LogError(fmt.Sprintf("Error upserting final batch: %v", err))
-			return err
+		// Process remaining items in batch for this namespace
+		if len(batch) > 0 {
+			err := u.client.UpsertBatch(ctx, batch, namespace)
+			if err != nil {
+				logger.LogError(fmt.Sprintf("Error upserting final batch for namespace %s: %v", namespace, err))
+				return err
+			}
+			processedChunks += len(batch)
+			logger.LogProgress(processedChunks, totalChunks, "Final chunks processed")
 		}
-		processedChunks += len(batch)
-		logger.LogProgress(processedChunks, totalChunks, "Final chunks processed")
 	}
 
-	logger.LogSuccess(fmt.Sprintf("Upsert completed! Processed %d chunks from %d documents", processedChunks, len(documents)-failedDocuments))
+	logger.LogSuccess(fmt.Sprintf("Upsert completed! Processed %d chunks from %d documents across %d namespaces", processedChunks, len(documents)-failedDocuments, len(namespaces)))
 	if failedDocuments > 0 {
 		logger.LogWarning(fmt.Sprintf("Failed to process %d documents", failedDocuments))
 	}
 
 	return nil
+}
+
+func (u *Upserter) extractNamespace(relativePath string) string {
+	// Extract namespace from relative path (full path excluding filename)
+	// Format: "go-fiber-recipes/404-handler/main.go" -> "go-fiber-recipes/404-handler"
+	// Format: "clean-architecture/api/handlers/book_handler.go" -> "clean-architecture/api/handlers"
+
+	// Remove the filename to get directory path
+	dirPath := filepath.Dir(relativePath)
+
+	// If we're at root level, use "default"
+	if dirPath == "." || dirPath == "" {
+		return "default"
+	}
+
+	// Convert forward slashes to consistent separator and clean
+	namespace := strings.ReplaceAll(dirPath, "/", string(filepath.Separator))
+
+	return namespace
+}
+
+func (u *Upserter) extractRecipeName(relativePath string) string {
+	// Extract the recipe name (last directory in path)
+	// Format: "go-fiber-recipes/404-handler/main.go" -> "404-handler"
+	// Format: "clean-architecture/api/handlers/book_handler.go" -> "handlers"
+
+	parts := strings.Split(relativePath, string(filepath.Separator))
+	if len(parts) >= 2 {
+		// Get the last directory (excluding filename)
+		lastDir := parts[len(parts)-2]
+		return lastDir
+	}
+	return "root"
+}
+
+func (u *Upserter) extractProjectType(relativePath string) string {
+	// Extract the top-level project type
+	// Format: "go-fiber-recipes/404-handler/main.go" -> "go-fiber-recipes"
+	// Format: "clean-architecture/api/handlers/book_handler.go" -> "clean-architecture"
+
+	parts := strings.Split(relativePath, string(filepath.Separator))
+	if len(parts) > 0 && parts[0] != "" {
+		return parts[0]
+	}
+	return "unknown"
 }
 
 func (u *Upserter) generateDocumentID(filePath string, chunkIndex int) string {
@@ -119,6 +184,9 @@ func (u *Upserter) generateDocumentID(filePath string, chunkIndex int) string {
 
 func (u *Upserter) UpsertDocument(ctx context.Context, doc document.FileInfo) error {
 	logger.LogInfo(fmt.Sprintf("Upserting single document: %s", doc.RelativePath))
+
+	// Extract namespace from file path
+	namespace := u.extractNamespace(doc.RelativePath)
 
 	chunker := document.NewChunker(1000)
 	chunks, err := chunker.ChunkDocument(doc)
@@ -138,14 +206,20 @@ func (u *Upserter) UpsertDocument(ctx context.Context, doc document.FileInfo) er
 		metadata["source_file"] = doc.RelativePath
 		metadata["file_size"] = fmt.Sprintf("%d", doc.Size)
 
+		// Add recipe/project information
+		metadata["namespace"] = namespace
+		metadata["recipe_name"] = u.extractRecipeName(doc.RelativePath)
+		metadata["project_type"] = u.extractProjectType(doc.RelativePath)
+
 		documents[i] = Document{
-			ID:       docID,
-			Content:  chunk.Content,
-			Metadata: metadata,
+			ID:        docID,
+			Content:   chunk.Content,
+			Metadata:  metadata,
+			Namespace: namespace,
 		}
 	}
 
-	return u.client.UpsertBatch(ctx, documents)
+	return u.client.UpsertBatch(ctx, documents, namespace)
 }
 
 func (u *Upserter) ValidateDocument(doc document.FileInfo) error {

@@ -8,7 +8,7 @@ help: ## Show this help message
 # Build targets
 build: ## Build the main application
 	@echo "Building application..."
-	@go build -o main .
+	@go build -o prj-start .
 
 build-all: ## Build all projects in dev-docs directory
 	@echo "Building all projects..."
@@ -22,7 +22,7 @@ build-all: ## Build all projects in dev-docs directory
 # Run targets
 run: build ## Build and run the application
 	@echo "Running application..."
-	@./main
+	@./prj-start
 
 run-dev: ## Run application without building (for development)
 	@echo "Running application in development mode..."
@@ -71,7 +71,7 @@ test-all: ## Run tests for all projects
 # Clean targets
 clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."
-	@rm -f main main.exe coverage.out coverage.html
+	@rm -f prj-start prj-start.exe coverage.out coverage.html
 	@go clean -cache
 
 clean-all: ## Clean all projects
@@ -82,13 +82,13 @@ clean-all: ## Clean all projects
 			cd "$$dir" && rm -f main main.exe && go clean -cache && cd ../..; \
 		fi \
 	done
-	@rm -f main main.exe coverage.out coverage.html
+	@rm -f prj-start prj-start.exe coverage.out coverage.html
 
 # Process management
 kill: ## Kill running Go processes
 	@echo "Killing running Go processes..."
 	@pkill -f "go run" || true
-	@pkill -f "main" || true
+	@pkill -f "prj-start" || true
 	@pkill -f "air" || true
 	@echo "Processes killed"
 

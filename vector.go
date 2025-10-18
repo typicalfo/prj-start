@@ -71,4 +71,12 @@ func main() {
 
 	duration := time.Since(startTime)
 	logger.LogSuccess(fmt.Sprintf("Vector upsert completed successfully in %v", duration))
+
+	// List all namespaces to verify
+	namespaces, err := vectorClient.ListNamespaces(ctx)
+	if err != nil {
+		logger.LogWarning(fmt.Sprintf("Failed to list namespaces: %v", err))
+	} else {
+		logger.LogSuccess(fmt.Sprintf("Created/updated namespaces: %v", namespaces))
+	}
 }
