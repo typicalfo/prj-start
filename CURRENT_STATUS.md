@@ -435,3 +435,68 @@ The enhanced metadata ensures that:
 - Code examples remain discoverable by their intended use case
 
 This enhancement preserves the recipe-based organization while providing rich metadata for intelligent querying and discovery.
+
+## Date: 2025-10-18
+
+## Task: Fix Namespace Compatibility with Upstash Vector
+
+### Status: Completed
+
+**Started:** 2025-10-18  
+**Completed:** Fixed namespace format to work with Upstash Vector API limitations
+
+### Problem Identified
+Upstash Vector doesn't support nested namespaces with forward slashes in the namespace name. The previous implementation was trying to create namespaces like `go-fiber-recipes/clean-code/app/datasources/database` which resulted in API errors:
+```
+Endpoint POST /upsert-data/go-fiber-recipes/clean-code/app/datasources/database not found
+```
+
+### Solution Implemented
+
+1. **Simplified Namespace Extraction**:
+   - Changed from full path to immediate parent directory
+   - Format: `go-fiber-recipes/404-handler/main.go` → namespace: `404-handler`
+   - Format: `clean-code/app/server/domain/books.go` → namespace: `server`
+   - Ensures compatibility with Upstash Vector API
+
+2. **Enhanced Metadata Preservation**:
+   - Added `full_path` field to preserve complete directory structure
+   - Maintains `recipe_name` and `project_type` for categorization
+   - All path information preserved in metadata for querying
+
+3. **Updated Metadata Structure**:
+   ```json
+   {
+     "namespace": "404-handler",
+     "full_path": "go-fiber-recipes/404-handler", 
+     "recipe_name": "404-handler",
+     "project_type": "go-fiber-recipes",
+     "source_file": "go-fiber-recipes/404-handler/main.go"
+   }
+   ```
+
+### Benefits of This Approach
+
+1. **API Compatibility**: Works with Upstash Vector namespace limitations
+2. **Rich Metadata**: Full path information preserved for filtering
+3. **Flexible Querying**: Can query by namespace, full_path, or project_type
+4. **Logical Grouping**: Related files grouped by immediate directory
+5. **Backward Compatibility**: Existing query patterns still work
+
+### Query Examples
+
+With the new structure, users can:
+- **Query by Namespace**: Find all files in `404-handler` recipe
+- **Filter by Full Path**: Target specific project structures
+- **Search by Project Type**: Get all `go-fiber-recipes` examples
+- **Combine Filters**: `project_type="go-fiber-recipes" AND recipe_name="404-handler"`
+
+### Namespace Mapping Examples
+
+| File Path | Namespace | Full Path | Project Type |
+|-----------|-----------|------------|--------------|
+| `go-fiber-recipes/404-handler/main.go` | `404-handler` | `go-fiber-recipes/404-handler` | `go-fiber-recipes` |
+| `clean-code/app/server/domain/books.go` | `server` | `clean-code/app/server` | `clean-code` |
+| `clean-architecture/api/handlers/book.go` | `handlers` | `clean-architecture/api/handlers` | `clean-architecture` |
+
+This fix ensures successful upserts while maintaining rich categorization metadata for intelligent querying.

@@ -77,7 +77,9 @@ func (u *Upserter) UpsertAllDocuments(ctx context.Context, documents []document.
 			metadata["file_size"] = fmt.Sprintf("%d", doc.Size)
 
 			// Add recipe/project information
+			fullPath := u.extractFullPath(doc.RelativePath)
 			metadata["namespace"] = namespace
+			metadata["full_path"] = fullPath
 			metadata["recipe_name"] = u.extractRecipeName(doc.RelativePath)
 			metadata["project_type"] = u.extractProjectType(doc.RelativePath)
 
@@ -132,22 +134,19 @@ func (u *Upserter) UpsertAllDocuments(ctx context.Context, documents []document.
 }
 
 func (u *Upserter) extractNamespace(relativePath string) string {
-	// Extract namespace from relative path (full path excluding filename)
-	// Format: "go-fiber-recipes/404-handler/main.go" -> "go-fiber-recipes/404-handler"
-	// Format: "clean-architecture/api/handlers/book_handler.go" -> "clean-architecture/api/handlers"
+	// Extract namespace as recipe name (last directory in path)
+	// Upstash Vector doesn't support nested namespaces with slashes
+	// Format: "go-fiber-recipes/404-handler/main.go" -> "404-handler"
+	// Format: "clean-architecture/api/handlers/book_handler.go" -> "handlers"
+	// Format: "clean-code/app/server/domain/books.go" -> "server"
 
-	// Remove the filename to get directory path
-	dirPath := filepath.Dir(relativePath)
-
-	// If we're at root level, use "default"
-	if dirPath == "." || dirPath == "" {
-		return "default"
+	parts := strings.Split(relativePath, string(filepath.Separator))
+	if len(parts) >= 2 {
+		// Get the immediate parent directory of the file
+		parentDir := parts[len(parts)-2]
+		return parentDir
 	}
-
-	// Convert forward slashes to consistent separator and clean
-	namespace := strings.ReplaceAll(dirPath, "/", string(filepath.Separator))
-
-	return namespace
+	return "default"
 }
 
 func (u *Upserter) extractRecipeName(relativePath string) string {
@@ -165,7 +164,7 @@ func (u *Upserter) extractRecipeName(relativePath string) string {
 }
 
 func (u *Upserter) extractProjectType(relativePath string) string {
-	// Extract the top-level project type
+	// Extract top-level project type
 	// Format: "go-fiber-recipes/404-handler/main.go" -> "go-fiber-recipes"
 	// Format: "clean-architecture/api/handlers/book_handler.go" -> "clean-architecture"
 
@@ -174,6 +173,18 @@ func (u *Upserter) extractProjectType(relativePath string) string {
 		return parts[0]
 	}
 	return "unknown"
+}
+
+func (u *Upserter) extractFullPath(relativePath string) string {
+	// Extract full directory path (excluding filename)
+	// Format: "go-fiber-recipes/404-handler/main.go" -> "go-fiber-recipes/404-handler"
+	// Format: "clean-code/app/server/domain/books.go" -> "clean-code/app/server"
+
+	dirPath := filepath.Dir(relativePath)
+	if dirPath == "." || dirPath == "" {
+		return "root"
+	}
+	return dirPath
 }
 
 func (u *Upserter) generateDocumentID(filePath string, chunkIndex int) string {
@@ -207,7 +218,9 @@ func (u *Upserter) UpsertDocument(ctx context.Context, doc document.FileInfo) er
 		metadata["file_size"] = fmt.Sprintf("%d", doc.Size)
 
 		// Add recipe/project information
+		fullPath := u.extractFullPath(doc.RelativePath)
 		metadata["namespace"] = namespace
+		metadata["full_path"] = fullPath
 		metadata["recipe_name"] = u.extractRecipeName(doc.RelativePath)
 		metadata["project_type"] = u.extractProjectType(doc.RelativePath)
 
