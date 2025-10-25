@@ -19,10 +19,14 @@ func NewClient(cfg *config.UpstashConfig) (*Client, error) {
 		return nil, fmt.Errorf("invalid Upstash configuration")
 	}
 
+	logger.LogInfo(fmt.Sprintf("Raw URL from config: '%s'", cfg.URL))
+	logger.LogInfo(fmt.Sprintf("URL length: %d", len(cfg.URL)))
+	logger.LogInfo(fmt.Sprintf("URL bytes: %v", []byte(cfg.URL)))
+
 	// Initialize actual Upstash Vector client
 	index := vector.NewIndex(cfg.URL, cfg.Token)
 
-	logger.LogSuccess("Upstash Vector client initialized")
+	logger.LogSuccess(fmt.Sprintf("Upstash Vector client initialized with URL: %s", cfg.URL))
 	return &Client{
 		config: cfg,
 		index:  index,
@@ -59,6 +63,7 @@ func (c *Client) Upsert(ctx context.Context, id string, metadata map[string]stri
 
 func (c *Client) UpsertBatch(ctx context.Context, documents []Document, namespace string) error {
 	logger.LogInfo(fmt.Sprintf("Upserting batch of %d documents (namespace: %s)", len(documents), namespace))
+	logger.LogInfo(fmt.Sprintf("Namespace debug: '%s' (len=%d)", namespace, len(namespace)))
 
 	// Convert documents to UpsertData format
 	upsertData := make([]vector.UpsertData, len(documents))
@@ -77,9 +82,11 @@ func (c *Client) UpsertBatch(ctx context.Context, documents []Document, namespac
 	}
 
 	// Create namespace instance
+	logger.LogInfo(fmt.Sprintf("Creating namespace client for: '%s'", namespace))
 	ns := c.index.Namespace(namespace)
 
 	// Use UpsertDataMany for batch processing
+	logger.LogInfo(fmt.Sprintf("Calling UpsertDataMany with %d documents", len(upsertData)))
 	err := ns.UpsertDataMany(upsertData)
 	if err != nil {
 		logger.LogError(fmt.Sprintf("Failed to upsert batch of %d documents: %v", len(documents), err))

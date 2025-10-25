@@ -1,8 +1,10 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -19,8 +21,33 @@ type UpstashConfig struct {
 }
 
 func LoadUpstashConfig() *UpstashConfig {
+	// First, check if .env file exists and read it directly to debug
+	envPath := ".env"
+	if _, err := os.Stat(envPath); err == nil {
+		fmt.Printf("DEBUG: Reading .env file directly for debugging...\n")
+		envContent, err := os.ReadFile(envPath)
+		if err != nil {
+			fmt.Printf("DEBUG: Failed to read .env file: %v\n", err)
+		} else {
+			fmt.Printf("DEBUG: Raw .env file content:\n%s\n", string(envContent))
+
+			// Look for the URL line specifically
+			lines := strings.Split(string(envContent), "\n")
+			for i, line := range lines {
+				if strings.Contains(line, "UPSTASH_VECTOR_REST_URL") {
+					fmt.Printf("DEBUG: Line %d: '%s'\n", i, line)
+					fmt.Printf("DEBUG: Line %d bytes: %v\n", i, []byte(line))
+				}
+			}
+		}
+	}
+
 	// Load .env file if it exists
-	_ = godotenv.Load()
+	if err := godotenv.Load(); err != nil {
+		fmt.Printf("DEBUG: Could not load .env file: %v\n", err)
+	} else {
+		fmt.Printf("DEBUG: Successfully loaded .env file with godotenv\n")
+	}
 
 	return &UpstashConfig{
 		URL:               getEnv("UPSTASH_VECTOR_REST_URL", ""),
@@ -36,6 +63,8 @@ func LoadUpstashConfig() *UpstashConfig {
 
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
+		// Debug: print the exact bytes we got
+		fmt.Printf("DEBUG getEnv(%s): bytes=%v, len=%d\n", key, []byte(value), len(value))
 		return value
 	}
 	return defaultValue
