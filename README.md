@@ -8,7 +8,7 @@ This project processes development documents from `dev-docs/` folder, intelligen
 
 The project uses a dual approach:
 - **Ingestion**: Go-based code for chunking and upserting documents
-- **Querying**: Upstash MCP server for natural language queries against indexed data
+- **Querying**: Built-in MCP server for natural language queries against indexed data
 
 ## Quickstart
 
@@ -60,11 +60,11 @@ make build
    prj-start --folder ./docs --verbose
    ```
 
-4. **Query your data** using natural language with [Upstash MCP Server](#upstash-mcp-server-for-querying)
+4. **Query your data** using natural language with the [built-in MCP Server](#local-mcp-server-for-opencode)
 
 For detailed setup instructions, see:
 - [Configuration](#configuration) - Complete environment setup
-- [Upstash MCP Server](#upstash-mcp-server-for-querying) - Natural language querying
+- [Local MCP Server](#local-mcp-server-for-opencode) - Natural language querying
 - [Agent Instructions](./AGENT_MCP_INSTRUCTIONS.md) - Development agent guidance
 
 ## Features
@@ -240,35 +240,13 @@ LOG_LEVEL=info
 
 The application will automatically load these variables when started.
 
-### Upstash MCP Server for Querying
 
-For querying the indexed data using natural language, configure the Upstash MCP server:
-
-1. **Get API Key**: Go to `Account > Management API > Create API key` in Upstash Console
-2. **Configure MCP**: Add to your MCP configuration file:
-
-```json
-{
-  "mcpServers": {
-    "upstash": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@upstash/mcp-server",
-        "run",
-        "<UPSTASH_EMAIL>",
-        "<UPSTASH_API_KEY>"
-      ]
-    }
-  }
-}
-```
-
-For detailed MCP setup instructions, see [dev-docs/upstash/MCP.md](./dev-docs/upstash/MCP.md).
 
 ### Local MCP Server for Opencode
 
-This project includes a built-in MCP server for direct integration with Opencode. To configure it:
+This project includes a built-in MCP server for querying your indexed Upstash Vector data. This is the recommended way to query your documents - the Upstash MCP server only searches Redis and won't work with your Vector data.
+
+To configure the built-in MCP server:
 
 1. **Build the project** (if not already built):
    ```bash
@@ -399,17 +377,17 @@ Once data is ingested, you can query using natural language:
 2. **Intelligent Chunking**: Apply content-specific chunking strategies
 3. **Metadata Extraction**: Extract file paths, topics, and content types
 4. **Vector Ingestion**: Upsert chunks with embeddings to Upstash Vector
-5. **Natural Language Querying**: Use Upstash MCP server for queries
+5. **Natural Language Querying**: Use built-in MCP server for queries
 
 ### Separation of Concerns
 - **Ingestion Code** (this project): Handles document processing and upserting
-- **Query Interface** (Upstash MCP): Provides natural language access to indexed data
+- **Query Interface** (Built-in MCP): Provides natural language access to indexed data
 
 ### Benefits of This Approach
 - **Specialized Tools**: Each component uses the best tool for its job
-- **Scalable Querying**: MCP server handles complex natural language queries
+- **Scalable Querying**: Built-in MCP server handles complex natural language queries against Vector data
 - **Maintainable Code**: Clear separation between ingestion and querying
-- **Flexible Access**: Query from any MCP-compatible client (Cursor, Claude, etc.)
+- **Flexible Access**: Query from any MCP-compatible client (Opencode, Cursor, Claude, etc.)
 
 ## Development Guidelines
 
@@ -432,7 +410,7 @@ For detailed implementation plans and status, see:
 
 - [Upstash Go SDK Documentation](./UPSTASH-GO-SDK.md) - Complete API reference for the Go client
 - [Upstash Upsert API](./UPSTASH-UPSERT.md) - API documentation for upsert operations
-- [Upstash MCP Server](./dev-docs/upstash/MCP.md) - Natural language querying setup guide
+- [Upstash MCP Server](./dev-docs/upstash/MCP.md) - Reference documentation (note: use built-in MCP server for Vector queries)
 - [Agent MCP Instructions](./AGENT_MCP_INSTRUCTIONS.md) - Comprehensive guide for development agents using MCP
 - [Quick Start MCP](./QUICK_START_MCP.md) - Fast-start guide for agents to begin using the vector database
 
