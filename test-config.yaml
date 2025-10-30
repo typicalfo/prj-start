@@ -1,0 +1,7 @@
+# Test configuration for MCP server
+upstash:
+  url: "https://test-vector.upstash.io"
+  token: "test-token"
+default_namespace: "test"
+batch_size: 5
+log_level: "debug"

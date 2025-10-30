@@ -1,19 +1,15 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/typicalfo/prj-start/config"
 	"github.com/typicalfo/prj-start/logger"
-	"github.com/typicalfo/prj-start/processor"
 )
 
 var (
 	cfgFile string
-	folder  string
 	verbose bool
 	version = "dev"
 	commit  = "unknown"
@@ -24,60 +20,20 @@ var (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "prj-start",
-	Short: "Vector document ingestion system for development documentation",
-	Long: `prj-start is a Go-based tool for intelligently chunking and ingesting 
-development documentation into Upstash Vector database for enhanced search and retrieval.
+	Short: "Vector document processing and MCP server",
+	Long: `prj-start is a Go-based tool for document processing and MCP server functionality.
 
-The tool processes documents from any specified folder, automatically chunks them 
-based on content type, and upserts them to Upstash Vector with rich metadata.
+Commands:
+  ingest    - Process and ingest documents into Upstash Vector database
+  init      - Initialize configuration
+  mcp       - Start MCP server for querying (coming soon)
 
-Perfect for:
-- Development teams with code documentation
-- API documentation and examples  
-- Recipe collections and tutorials
-- Knowledge base management
-
-Use 'prj-start init' to set up your configuration first.`,
+Use 'prj-start help <command>' for more information about a specific command.`,
 	Version: fmt.Sprintf("%s (commit: %s, built: %s by: %s)", version, commit, date, builtBy),
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if verbose {
 			logger.SetLogLevel("debug")
 		}
-	},
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// If no folder specified, use current directory
-		if folder == "" {
-			folder = "."
-		}
-
-		// Check if folder exists
-		if _, err := os.Stat(folder); os.IsNotExist(err) {
-			return fmt.Errorf("folder '%s' does not exist", folder)
-		}
-
-		// Load configuration
-		cfg, err := config.LoadConfig(cfgFile)
-		if err != nil {
-			return fmt.Errorf("failed to load configuration: %w\n\nUse 'prj-start init' to set up your configuration", err)
-		}
-
-		// Check if Upstash configuration is complete
-		if !cfg.HasUpstashConfig() {
-			return fmt.Errorf("Upstash configuration is incomplete\n\nUse 'prj-start init' to set up your configuration")
-		}
-
-		// Validate folder
-		if err := processor.ValidateFolder(folder); err != nil {
-			return err
-		}
-
-		// Process documents
-		ctx := context.Background()
-		if err := processor.ProcessFolder(ctx, cfg, folder); err != nil {
-			return fmt.Errorf("failed to process folder: %w", err)
-		}
-
-		return nil
 	},
 }
 
@@ -93,7 +49,6 @@ func Execute() {
 func init() {
 	// Global flags
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/prj-start/config.yaml)")
-	rootCmd.PersistentFlags().StringVarP(&folder, "folder", "f", "", "folder to scan for documents (default is current directory)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	// Add custom help template
@@ -145,7 +100,7 @@ PowerShell:
 `,
 	DisableFlagsInUseLine: true,
 	ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
-	Args:                  cobra.ExactValidArgs(1),
+	Args:                  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
 	Run: func(cmd *cobra.Command, args []string) {
 		switch args[0] {
 		case "bash":

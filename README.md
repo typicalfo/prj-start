@@ -266,6 +266,62 @@ For querying the indexed data using natural language, configure the Upstash MCP 
 
 For detailed MCP setup instructions, see [dev-docs/upstash/MCP.md](./dev-docs/upstash/MCP.md).
 
+### Local MCP Server for Opencode
+
+This project includes a built-in MCP server for direct integration with Opencode. To configure it:
+
+1. **Build the project** (if not already built):
+   ```bash
+   make build
+   ```
+
+2. **Configure Opencode**: Add to your Opencode configuration file (usually at `~/.config/opencode/config.json`):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "prj-start-vector": {
+      "type": "local",
+      "command": ["go", "run", ".", "mcp"],
+      "enabled": true,
+      "environment": {
+        "UPSTASH_VECTOR_REST_URL": "your-upstash-vector-url",
+        "UPSTASH_VECTOR_REST_TOKEN": "your-upstash-vector-token"
+      }
+    }
+  }
+}
+```
+
+**Alternative configuration (using built binary):**
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "prj-start-vector": {
+      "type": "local",
+      "command": ["./main", "mcp"],
+      "enabled": true,
+      "environment": {
+        "UPSTASH_VECTOR_REST_URL": "your-upstash-vector-url",
+        "UPSTASH_VECTOR_REST_TOKEN": "your-upstash-vector-token"
+      }
+    }
+  }
+}
+```
+
+**Available MCP Tools:**
+- `vector_query` - Natural language semantic search
+- `metadata_query` - Filter by metadata fields  
+- `list_namespaces` - Show available namespaces
+- `get_document` - Retrieve specific document by ID
+
+**Usage with Opencode:**
+Once configured, Opencode will automatically connect to your local MCP server and provide access to your indexed documents through natural language queries.
+
 ### Example .env file
 
 ```bash
