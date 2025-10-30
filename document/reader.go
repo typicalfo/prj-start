@@ -40,6 +40,10 @@ func (r *Reader) ReadAllDocuments() ([]FileInfo, error) {
 		}
 
 		if d.IsDir() {
+			// Skip hidden directories (starting with .) and system directories
+			if r.shouldSkipDirectory(path) {
+				return fs.SkipDir
+			}
 			return nil
 		}
 
@@ -67,7 +71,52 @@ func (r *Reader) ReadAllDocuments() ([]FileInfo, error) {
 	return documents, nil
 }
 
+func (r *Reader) shouldSkipDirectory(path string) bool {
+	// Get the directory name
+	dirName := filepath.Base(path)
+
+	// Don't skip the root directory itself
+	if path == r.rootDir {
+		return false
+	}
+
+	// Skip hidden directories (starting with .)
+	if strings.HasPrefix(dirName, ".") {
+		logger.LogInfo(fmt.Sprintf("Skipping hidden directory: %s", path))
+		return true
+	}
+
+	// Skip common system directories
+	skipDirs := map[string]bool{
+		"node_modules": true,
+		"vendor":       true,
+		"dist":         true,
+		"build":        true,
+		"target":       true,
+		"bin":          true,
+		"obj":          true,
+		"out":          true,
+		"cache":        true,
+		"tmp":          true,
+		"temp":         true,
+	}
+
+	if skipDirs[dirName] {
+		logger.LogInfo(fmt.Sprintf("Skipping system directory: %s", path))
+		return true
+	}
+
+	return false
+}
+
 func (r *Reader) shouldSkipFile(path string) bool {
+	// Skip hidden files (starting with .)
+	fileName := filepath.Base(path)
+	if strings.HasPrefix(fileName, ".") {
+		logger.LogInfo(fmt.Sprintf("Skipping hidden file: %s", path))
+		return true
+	}
+
 	// Skip binary files, large files, and common non-text files
 	ext := strings.ToLower(filepath.Ext(path))
 	skipExts := map[string]bool{

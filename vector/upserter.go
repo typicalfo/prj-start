@@ -144,6 +144,33 @@ func (u *Upserter) extractNamespace(relativePath string) string {
 	if len(parts) >= 2 {
 		// Get the immediate parent directory of the file
 		parentDir := parts[len(parts)-2]
+
+		// Sanitize namespace: remove leading dots and special characters
+		// Upstash namespaces must start with alphanumeric character
+		if strings.HasPrefix(parentDir, ".") {
+			// Remove leading dots and replace with "hidden-" prefix
+			sanitized := strings.TrimLeft(parentDir, ".")
+			if sanitized == "" {
+				return "hidden"
+			}
+			return "hidden-" + sanitized
+		}
+
+		// Skip common system directories that shouldn't be namespaces
+		systemDirs := map[string]bool{
+			"git":          true,
+			"vscode":       true,
+			"idea":         true,
+			"node_modules": true,
+			"vendor":       true,
+			"dist":         true,
+			"build":        true,
+		}
+
+		if systemDirs[parentDir] {
+			return "system"
+		}
+
 		return parentDir
 	}
 	return "default"
