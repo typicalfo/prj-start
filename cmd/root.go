@@ -11,7 +11,7 @@ import (
 var (
 	cfgFile string
 	verbose bool
-	version = "dev"
+	version = "v0.1.5"
 	commit  = "unknown"
 	date    = "unknown"
 	builtBy = "unknown"
